@@ -1,10 +1,9 @@
-const CACHE_NAME = 'whiskers-v1';
+const CACHE_NAME = 'whiskers-v2';
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  '/icons/icon.svg'
 ];
 
 // Install event - cache assets
