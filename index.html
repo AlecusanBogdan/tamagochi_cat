@@ -1496,6 +1496,8 @@
         }
 
         // Game state
+        const STORAGE_KEY = 'whiskers_save';
+
         let gameState = {
             name: 'Whiskers',
             hunger: 100,
@@ -1508,8 +1510,64 @@
             isSleeping: false,
             gameStarted: false,
             actionCooldown: false,
-            lastActivity: Date.now()
+            lastActivity: Date.now(),
+            lastSaveTime: Date.now()
         };
+
+        // Save game to localStorage
+        function saveGame() {
+            gameState.lastSaveTime = Date.now();
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
+            } catch (e) {
+                console.log('Could not save game:', e);
+            }
+        }
+
+        // Load game from localStorage
+        function loadGame() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const savedState = JSON.parse(saved);
+                    
+                    // Calculate time passed and apply stat decay
+                    const now = Date.now();
+                    const timePassed = (now - savedState.lastSaveTime) / 1000; // seconds
+                    
+                    // Apply decay based on time passed (but cap it so pet doesn't instantly die)
+                    const decayMultiplier = Math.min(timePassed / 60, 30); // Cap at 30 minutes worth of decay
+                    
+                    if (!savedState.isSleeping && savedState.isAlive) {
+                        savedState.hunger = Math.max(0, savedState.hunger - (0.5 * decayMultiplier));
+                        savedState.happiness = Math.max(0, savedState.happiness - (0.3 * decayMultiplier));
+                        savedState.hygiene = Math.max(0, savedState.hygiene - (0.2 * decayMultiplier));
+                        savedState.energy = Math.max(0, savedState.energy - (0.4 * decayMultiplier));
+                    }
+                    
+                    // Restore state
+                    gameState = {
+                        ...savedState,
+                        actionCooldown: false, // Reset cooldown on load
+                        lastSaveTime: now
+                    };
+                    
+                    return true;
+                }
+            } catch (e) {
+                console.log('Could not load game:', e);
+            }
+            return false;
+        }
+
+        // Clear saved game
+        function clearSave() {
+            try {
+                localStorage.removeItem(STORAGE_KEY);
+            } catch (e) {
+                console.log('Could not clear save:', e);
+            }
+        }
 
         // DOM elements
         const cat = document.getElementById('cat');
@@ -1581,6 +1639,10 @@
             document.getElementById('petNameDisplay').textContent = gameState.name.toUpperCase();
             document.getElementById('startScreen').classList.add('hidden');
             gameState.gameStarted = true;
+            gameState.lastSaveTime = Date.now();
+
+            // Save the new game
+            saveGame();
 
             // Show farewell card after a short delay
             setTimeout(() => {
@@ -1590,6 +1652,53 @@
             // Start game loops
             startGameLoops();
         }
+
+        // Resume a saved game
+        function resumeGame() {
+            initAudio();
+            document.getElementById('petNameDisplay').textContent = gameState.name.toUpperCase();
+            document.getElementById('petAge').textContent = `AGE: ${gameState.age}`;
+            document.getElementById('startScreen').classList.add('hidden');
+            
+            // Restore cat state
+            if (gameState.isSleeping) {
+                cat.className = 'cat sleeping';
+                zzz.style.animation = 'zzz 2s ease-in-out infinite';
+                sleepBtn.disabled = true;
+            }
+            
+            // Check if pet died while away
+            if (gameState.hunger <= 0 || gameState.happiness <= 0) {
+                gameState.isAlive = false;
+                document.getElementById('gameOverText').textContent = 
+                    `${gameState.name} ran away while you were gone... 😿`;
+                document.getElementById('gameOver').classList.add('show');
+            }
+            
+            updateStats();
+            updatePoopBadge();
+            startGameLoops();
+            
+            // Welcome back message
+            if (gameState.isAlive) {
+                setTimeout(() => {
+                    showSpeech("You're back! 💕");
+                    playHappySound();
+                }, 500);
+            }
+        }
+
+        // Initialize game on page load
+        function initGame() {
+            if (loadGame() && gameState.gameStarted) {
+                // Resume saved game
+                resumeGame();
+            }
+            // Otherwise wait for user to start new game
+        }
+
+        // Call init when DOM is ready
+        document.addEventListener('DOMContentLoaded', initGame);
 
         function showFarewell() {
             document.getElementById('overlay').classList.add('show');
@@ -1653,13 +1762,16 @@
                 isSleeping: false,
                 gameStarted: true,
                 actionCooldown: false,
-                lastActivity: Date.now()
+                lastActivity: Date.now(),
+                lastSaveTime: Date.now()
             };
             document.getElementById('gameOver').classList.remove('show');
             document.getElementById('poopContainer').innerHTML = ''; // Clear all poops
+            document.getElementById('petAge').textContent = 'AGE: 0';
             updatePoopBadge();
             cat.className = 'cat';
             updateStats();
+            saveGame(); // Save the fresh start
         }
 
         // Game loops
@@ -1685,6 +1797,7 @@
                 updateStats();
                 checkGameOver();
                 updateMessage();
+                saveGame(); // Auto-save every second
             }, 1000);
 
             // Age up every minute
