@@ -1,0 +1,37 @@
+{
+  "name": "Whiskers - Virtual Cat Companion",
+  "short_name": "Whiskers",
+  "description": "Take care of your adorable virtual cat! Feed, play, and keep Whiskers happy.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1625",
+  "theme_color": "#ff6b9d",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["games", "entertainment"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Feed Whiskers",
+      "short_name": "Feed",
+      "description": "Give your cat some food",
+      "url": "/?action=feed",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+    }
+  ]
+}
+
